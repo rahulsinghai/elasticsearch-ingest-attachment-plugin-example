@@ -1,0 +1,20 @@
+{
+  "name": "es-mapper-attachments-plugin-example",
+  "version": "0.0.1",
+  "authors": [
+    "Rahul Singhai <singrahu@gmail.com>"
+  ],
+  "description": "Example of how to use ElasticSearch mapper-attachments plugin",
+  "keywords": [
+    "elasticsearch",
+    "elasticsearch-mapper-attachments"
+  ],
+  "license": "Apache 2.0",
+  "dependencies": {
+    "jquery": "~2.1.4",
+    "bootstrap": "~3.3.5",
+    "knockout": "~3.3.0",
+    "fontawesome": "~4.3.0",
+    "elasticsearch": "~5.0.0"
+  }
+}

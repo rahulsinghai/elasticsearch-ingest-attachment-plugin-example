@@ -1,0 +1,9 @@
+.idea/
+*.iml
+libs/
+logs/
+project/project/
+project/target/
+target/
+ui/bower_components/
+
