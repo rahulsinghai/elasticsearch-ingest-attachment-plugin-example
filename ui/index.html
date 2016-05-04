@@ -51,14 +51,17 @@
       <div class="media">
         <div class="media-body">
           <i data-bind="css: icon"></i>
-          <strong data-bind="text: _source.name"></strong>
+          <strong data-bind="text: fields['policy.name']"></strong>
         </div>
         <div class="media-right">
-          <a class="text-danger" href="#" data-bind="click: $root.delete">delete</a>
+          Score:<strong data-bind="text: _score"></strong>
+        </div>
+        <div class="media-right">
+          <a class="text-danger" href="#" data-bind="click: $root.delete" title="delete"><span class="fa fa-remove"></span></a>
         </div>
       </div>
       <div data-bind="if: hasHighlights">
-        <ol data-bind="foreach: highlight.content">
+        <ol data-bind="foreach: highlight['policy.content']">
           <li data-bind="html: $data"></li>
         </ol>
       </div>
@@ -75,10 +78,22 @@
 
             ko.utils.extend(self, data);
 
-            self.hasHighlights = self.highlight && self.highlight.content && self.highlight.content.length > 0;
+            self.hasHighlights = self.highlight && self.highlight["policy.content"] && self.highlight["policy.content"].length > 0;
 
-            if(self._source.type === 'application/msword' || self._source.type === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document') {
+            if(self.fields["policy.content_type"][0] === 'application/msword' || self.fields["policy.content_type"][0] === 'application/vnd.openxmlformats-officedocument.wordprocessingml.document' || self.fields["policy.content_type"][0] === 'application/vnd.openxmlformats-officedocument.wordprocessingml.template' || self.fields["policy.content_type"][0] === 'application/vnd.ms-word.document.macroEnabled.12' || self.fields["policy.content_type"][0] === 'application/vnd.ms-word.template.macroEnabled.12') {
                 self.icon = 'fa fa-file-word-o';
+            } else if(self.fields["policy.content_type"][0] === 'audio/basic') {
+                self.icon = 'fa fa-file-audio-o';
+            } else if(self.fields["policy.content_type"][0] === 'video/msvideo' || self.fields["policy.content_type"][0] === 'video/avi' || self.fields["policy.content_type"][0] === 'video/x-msvideo') {
+                self.icon = 'fa-file-video-o';
+            } else if(self.fields["policy.content_type"][0] === 'image/bmp' || self.fields["policy.content_type"][0] === 'image/gif' || self.fields["policy.content_type"][0] === 'image/jpeg' || self.fields["policy.content_type"][0] === 'image/png' || self.fields["policy.content_type"][0] === 'image/svg+xml' || self.fields["policy.content_type"][0] === 'image/tiff') {
+                self.icon = 'fa-file-image-o';
+            } else if(self.fields["policy.content_type"][0] === 'application/pdf') {
+                self.icon = 'fa fa-file-pdf-o';
+            } else if(self.fields["policy.content_type"][0] === 'application/vnd.openxmlformats-officedocument.presentationml.template' || self.fields["policy.content_type"][0] === 'application/vnd.openxmlformats-officedocument.presentationml.slideshow' || self.fields["policy.content_type"][0] === 'application/vnd.ms-powerpoint' || self.fields["policy.content_type"][0] === 'application/vnd.openxmlformats-officedocument.presentationml.presentation') {
+                self.icon = 'fa fa-file-powerpoint-o';
+            } else if(self.fields["policy.content_type"][0] === 'application/vnd.ms-excel' || self.fields["policy.content_type"][0] === 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' || self.fields["policy.content_type"][0] === 'application/vnd.openxmlformats-officedocument.spreadsheetml.template' || self.fields["policy.content_type"][0] === 'application/vnd.ms-excel.sheet.macroEnabled.12' || self.fields["policy.content_type"][0] === 'application/vnd.ms-excel.template.macroEnabled.12' || self.fields["policy.content_type"][0] === 'application/vnd.ms-excel.addin.macroEnabled.12' || self.fields["policy.content_type"][0] === 'application/vnd.ms-excel.sheet.binary.macroEnabled.12') {
+                self.icon = 'fa fa-file-excel-o';
             } else {
                 self.icon = 'fa fa-file-text-o';
             }
@@ -87,12 +102,12 @@
         function Model() {
             var self = this;
 
-            self.index = 'attachments';
-            self.type = 'document'; // need to be replaced in mapping also
+            self.index = 'policies';
+            self.type = 'risk'; // need to be replaced in mapping also
 
             self.client = new elasticsearch.Client({
                 hosts: [
-                  'http://localhost:9200'
+                  'http://admin:password@localhost:9200'
                 ],
                 log: 'trace'
             });
@@ -116,24 +131,27 @@
                     index: self.index,
                     type: self.type,
                     body: {
-                        _source: {
-                            exclude: ['content']
-                        }
+                        fields: [ 'policy.content_type', 'policy.author', 'policy.name', 'policy.title', 'policy.content_length', 'policy.date', 'policy.language', 'policy.keywords' ]
                     }
                 };
 
                 if(self.q() && self.q().trim().length > 0) {
                     body.body.query = {
-                            query_string: {
-                                query: self.q()
+                            match: {
+                                'policy.content': self.q()
                             }
                     };
 
                     body.body.highlight = {
-                        pre_tags: ['<mark>'],
-                        post_tags: ['</mark>'],
+                        tag_schema: 'styled',
                         fields: {
-                            content: {}
+                          'policy.content': {
+                            pre_tags : ['<mark>'],
+                            post_tags : ['</mark>'],
+                            fragment_size: 100,
+                            number_of_fragments: 10,
+                            order: 'score'
+                          }
                         }
                     };
                 }
@@ -176,16 +194,20 @@
                             index: self.index,
                             type: self.type,
                             body: {
-                                name: file.name,
-                                date: (new Date(file.lastModified)).toISOString(),
-                                type: file.type,
-                                content: event.target.result.substr(event.target.result.indexOf(',') + 1)
+                                isEnabled: true,
+                                policy: {
+                                    _indexed_chars: -1,
+                                    _content: event.target.result.substr(event.target.result.indexOf(',') + 1),
+                                    _name: file.name,
+                                    _content_type: file.type,
+                                    _date: (new Date(file.lastModified)).toISOString()
+                                }
                             }
                         }).then(function(body){
-                            body._source = {
-                                name: file.name,
-                                date: (new Date(file.lastModified)).toISOString(),
-                                type: file.type
+                            body.fields = {
+                                'policy.name': file.name,
+                                'policy.date': (new Date(file.lastModified)).toISOString(),
+                                'policy.content_type': file.type
                             };
                             self.hits.push(new Hit(body));
                         });
@@ -206,21 +228,26 @@
 
             self.mappings.body.mappings[self.type] = {
                 properties: {
-                    name: {type: 'string'},
-                    date: {type: 'date'},
-                    type: {type: 'string'},
-                    content: {
-                        type: 'attachment',
-                        fields: {
-                            content:       {store: 'yes'},
-                            author:        {store: 'yes'},
-                            title:         {store: 'yes'},
-                            date:          {store: 'yes'},
-                            keywords:      {store: 'yes'},
-                            _name:         {store: 'yes'},
-                            _content_type: {store: 'yes'}
-                        }
+                  isEnabled: {type: 'boolean'},
+                  policy: {
+                    type: 'attachment',
+                    fields: {
+                      author: { store : true },
+                      content_length: { store : true },
+                      date: { store : true },
+                      language: { store : true },
+                      name: { store : true },
+                      title: { store : true },
+                      keywords: { store : true },
+                      content_type: { store: true },
+                      content: {
+                        type: 'string',
+                        analyzer: 'english',
+                        term_vector: 'with_positions_offsets',
+                        store: true
+                      }
                     }
+                  }
                 }
             };
 

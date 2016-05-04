@@ -27,8 +27,9 @@ done
 
 echo FILE = "${FILE}"
 echo ID = "${ID}"
+fileName=`basename "${FILE}"`
 
 coded=`cat "${FILE}" | perl -MMIME::Base64 -ne 'print encode_base64($_)'`
-json="{\"policy\" : { \"_content\" : \"${coded}\" }}"
+json="{\"isEnabled\" : true, \"policy\" : { \"_indexed_chars\" : -1, \"_content\" : \"${coded}\", \"_name\" : \"${fileName}\" }}"
 echo "$json" > json.file
-curl -X PUT "http://127.0.0.1:9200/policies/risk/${ID}?refresh=true&pretty=1" -d @json.file
+curl -X PUT "http://127.0.0.1:9200/policies/risk/${ID}?refresh=true&pretty=1" -u admin:password -d @json.file
