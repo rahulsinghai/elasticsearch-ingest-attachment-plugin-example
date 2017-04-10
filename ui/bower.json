@@ -1,20 +1,20 @@
 {
-  "name": "es-mapper-attachments-plugin-example",
-  "version": "0.0.1",
+  "name": "elasticsearch-ingest-attachment-plugin-example",
+  "version": "5.3.0",
   "authors": [
     "Rahul Singhai <singrahu@gmail.com>"
   ],
-  "description": "Example of how to use ElasticSearch mapper-attachments plugin",
+  "description": "Example of how to use ElasticSearch ingest-attachment plugin",
   "keywords": [
     "elasticsearch",
-    "elasticsearch-mapper-attachments"
+    "ingest-attachment"
   ],
   "license": "Apache 2.0",
   "dependencies": {
-    "jquery": "~2.1.4",
-    "bootstrap": "~3.3.5",
-    "knockout": "~3.3.0",
-    "fontawesome": "~4.3.0",
-    "elasticsearch": "~11.0.1"
+    "jquery": "~3.2.1",
+    "bootstrap": "~3.3.7",
+    "knockout": "~3.4.2",
+    "fontawesome": "~4.7.0",
+    "elasticsearch": "~13.0.0-rc2"
   }
 }

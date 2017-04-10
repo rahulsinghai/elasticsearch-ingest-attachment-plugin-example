@@ -30,6 +30,7 @@ echo ID = "${ID}"
 fileName=`basename "${FILE}"`
 
 coded=`cat "${FILE}" | perl -MMIME::Base64 -ne 'print encode_base64($_)'`
-json="{\"isEnabled\" : true, \"policy\" : { \"_indexed_chars\" : -1, \"_content\" : \"${coded}\", \"_name\" : \"${fileName}\" }}"
+json="{\"isEnabled\" : true, \"filename\" : \"${fileName}\", \"data\" : \"${coded}\" }"
 echo "$json" > json.file
-curl -X PUT "http://127.0.0.1:9200/policies/risk/${ID}?refresh=true&pretty=1" -u admin:password -d @json.file
+#curl -X PUT "http://localhost:9200/policies/policy/${ID}?pipeline=attachment&refresh=true&pretty=1" -u user:password -d @json.file  # use this when using shield
+curl -X PUT "http://127.0.0.1:9200/policies/policy/${ID}?pipeline=attachment&refresh=true&pretty=1" -d @json.file
