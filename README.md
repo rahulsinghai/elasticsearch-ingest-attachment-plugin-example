@@ -3,25 +3,25 @@ Example of how to use ElasticSearch ingest-attachment plugin using JavaScript
 - [Plug-in Github URL](https://github.com/elastic/elasticsearch/tree/5.x/plugins/ingest-attachment)
 
 ### ElasticSearch installation and configuration
-1. Install ElasticSearch 5.3.0
+1. Install ElasticSearch 5.4.0
    ```bash
    [/] cd /work/elk/elasticsearch
-   [/work/elk/elasticsearch] wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.3.0.tar.gz
-   [/work/elk/elasticsearch] tar -zxvf ./elasticsearch-5.3.0.tar.gz
-   [/work/elk/elasticsearch] cd elasticsearch-5.3.0
+   [/work/elk/elasticsearch] wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.4.0.tar.gz
+   [/work/elk/elasticsearch] tar -zxvf ./elasticsearch-5.4.0.tar.gz
+   [/work/elk/elasticsearch] cd elasticsearch-5.4.0
    ```
-2. Install corresponding version of [ingest-attachment](https://github.com/elastic/elasticsearch/tree/5.2/plugins/ingest-attachment) plug-in ([5.3.0](https://artifacts.elastic.co/downloads/elasticsearch-plugins/ingest-attachment/ingest-attachment-5.3.0.zip) for ES 5.3.0) on every node in the cluster, and each node must be restarted after installation. This requires Java in path.
+2. Install corresponding version of [ingest-attachment](https://github.com/elastic/elasticsearch/tree/5.4/plugins/ingest-attachment) plug-in ([5.4.0](https://artifacts.elastic.co/downloads/elasticsearch-plugins/ingest-attachment/ingest-attachment-5.4.0.zip) for ES 5.4.0) on every node in the cluster, and each node must be restarted after installation. This requires Java in path.
    ```bash
-   [/work/elk/elasticsearch/elasticsearch-5.3.0] wget https://artifacts.elastic.co/downloads/elasticsearch-plugins/ingest-attachment/ingest-attachment-5.3.0.zip
-   [/work/elk/elasticsearch/elasticsearch-5.3.0] ./bin/elasticsearch-plugin install file:///work/elk/elasticsearch/elasticsearch-5.3.0/ingest-attachment-5.3.0.zip
-   -> Downloading file:///work/elk/elasticsearch/elasticsearch-5.3.0/ingest-attachment-5.3.0.zip
+   [/work/elk/elasticsearch/elasticsearch-5.4.0] wget https://artifacts.elastic.co/downloads/elasticsearch-plugins/ingest-attachment/ingest-attachment-5.4.0.zip
+   [/work/elk/elasticsearch/elasticsearch-5.4.0] ./bin/elasticsearch-plugin install file:///work/elk/elasticsearch/elasticsearch-5.3.0/ingest-attachment-5.4.0.zip
+   -> Downloading file:///work/elk/elasticsearch/elasticsearch-5.4.0/ingest-attachment-5.4.0.zip
    [=================================================] 100% 
    Continue with installation? [y/N]y
    -> Installed ingest-attachment
    ```
 3. Make sure to have following settings in your elasticsearch.yml
    ```bash
-   [/work/elk/elasticsearch/elasticsearch-5.3.0] vim config/elasticsearch.yml
+   [/work/elk/elasticsearch/elasticsearch-5.4.0] vim config/elasticsearch.yml
    ## Add CORS Support
    http.cors.enabled : true
    http.cors.allow-origin : "*"
@@ -40,7 +40,7 @@ Example of how to use ElasticSearch ingest-attachment plugin using JavaScript
 4. (Optional) Install X-Pack (security/shield plug-in) as mentioned [here](https://www.elastic.co/guide/en/x-pack/current/installing-xpack.html#xpack-package-installation).
 5. Start ElasticSearch
    ```bash
-   [/work/elk/elasticsearch/elasticsearch-5.3.0]./bin/elasticsearch
+   [/work/elk/elasticsearch/elasticsearch-5.4.0]./bin/elasticsearch
    ```
 
 ### ElasticSearch index setup
@@ -65,9 +65,18 @@ Example of how to use ElasticSearch ingest-attachment plugin using JavaScript
          },
          "properties": {
            "@timestamp": {
-             "include_in_all": false,
              "type": "date",
              "format": "strict_date_optional_time||epoch_millis"
+           },
+           "id": {
+             "type": "keyword", 
+             "store":false,
+             "index": false
+           },
+           "message": {
+             "type": "keyword", 
+             "store":false,
+             "index": false
            },
            "filename": {
              "type": "keyword",
@@ -210,11 +219,15 @@ Example of how to use ElasticSearch ingest-attachment plugin using JavaScript
    ```bash
    PUT policies/policy/0?pipeline=attachment&refresh=true&pretty=1
    {
+     "@timestamp": "2017-05-18T15:21:39.465Z",
+     "filename": "abc.txt",
+     "isEnabled": false,
      "data": "e1xydGYxXGFuc2kNCkxvcmVtIGlwc3VtIGRvbG9yIHNpdCBhbWV0DQpccGFyIH0="
    }
    PUT /policies/policy/1?pipeline=attachment&refresh=true&pretty=1
    {
-     "filename": "abc.txt",
+     "@timestamp": "2017-05-18T15:21:39.465Z",
+     "filename": "def.txt",
      "isEnabled": true,
      "data": "IkdvZCBTYXZlIHRoZSBRdWVlbiIgKGFsdGVybmF0aXZlbHkgIkdvZCBTYXZlIHRoZSBLaW5nIg=="
    }
@@ -431,4 +444,18 @@ Example of how to use ElasticSearch ingest-attachment plugin using JavaScript
    17.03.28 14:23:06 200 GET /bower_components/fontawesome/fonts/fontawesome-webfont.woff2
    17.03.28 14:23:06 200 GET /bower_components/elasticsearch/elasticsearch.js
    17.03.28 14:23:06 404 GET /favicon.ico
+   ```
+
+## Deploying on production
+1. `lite-server` is supposed to be used only for debug/development purpose. It can't run as a daemon process. Hence, we need to install `http-server` and `forever` node modules:
+   ```bash
+   npm install -g http-server
+   npm install -g forever
+   ```
+2. Edit `index.html` in `ui` folder with correct ElasticSearch cluster details.
+3. Edit `startserver.js` in `ui` folder with correct path to `node_modules` folder and `hostname`.
+4. Start `http-server`:
+   ```bash
+   cd /work/github/elasticsearch-ingest-attachment-plugin-example/ui
+   forever start startserver.js
    ```

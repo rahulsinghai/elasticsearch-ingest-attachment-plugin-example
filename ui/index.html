@@ -149,7 +149,7 @@
         type: self.type,
         size: 20,
         body: {
-          _source: ['filename', 'attachment.content_type', 'attachment.author', 'attachment.name', 'attachment.title', 'attachment.content_length', 'attachment.date', 'attachment.language', 'attachment.keywords' ]
+          _source: ['filename', 'attachment.content', 'attachment.content_type', 'attachment.author', 'attachment.name', 'attachment.title', 'attachment.content_length', 'attachment.date', 'attachment.language', 'attachment.keywords' ]
         }
       };
 
@@ -236,6 +236,7 @@
             refresh: 'true',
             body: {
               isEnabled: true,
+              "@timestamp": (new Date()).toISOString(),
               filename: file.name,
               data: event.target.result.substr(event.target.result.indexOf(',') + 1)
             }
@@ -274,7 +275,9 @@
       },
       _all: { enabled: false },
       properties: {
-        '@timestamp': { include_in_all: false, type: 'date', format: 'strict_date_optional_time||epoch_millis'},
+        '@timestamp': { type: 'date', format: 'strict_date_optional_time||epoch_millis'},
+        id: { type: 'keyword', 'store': false, 'index': false },
+        message: { type: 'keyword', 'store': false, 'index': false },
         filename: { type: 'keyword', ignore_above: 256 },
         isEnabled: { type: 'boolean'},
         data: { type: 'text', fields: { keyword: { type: 'keyword', ignore_above: 256 } } },

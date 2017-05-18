@@ -1,6 +1,6 @@
 {
   "name": "elasticsearch-ingest-attachment-plugin-example",
-  "version": "5.3.0",
+  "version": "5.4.0",
   "authors": [
     "Rahul Singhai <singrahu@gmail.com>"
   ],
@@ -15,6 +15,6 @@
     "bootstrap": "~3.3.7",
     "knockout": "~3.4.2",
     "fontawesome": "~4.7.0",
-    "elasticsearch": "~13.0.0-rc2"
+    "elasticsearch": "~13.0.1"
   }
 }
