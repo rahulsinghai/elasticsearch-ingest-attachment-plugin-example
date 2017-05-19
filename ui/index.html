@@ -276,7 +276,6 @@
       _all: { enabled: false },
       properties: {
         '@timestamp': { type: 'date', format: 'strict_date_optional_time||epoch_millis'},
-        id: { type: 'keyword', 'store': false, 'index': false },
         message: { type: 'keyword', 'store': false, 'index': false },
         filename: { type: 'keyword', ignore_above: 256 },
         isEnabled: { type: 'boolean'},
