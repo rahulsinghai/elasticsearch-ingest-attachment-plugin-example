@@ -3,44 +3,83 @@ Example of how to use ElasticSearch ingest-attachment plugin using JavaScript
 - [Plug-in Github URL](https://github.com/elastic/elasticsearch/tree/5.x/plugins/ingest-attachment)
 
 ### ElasticSearch installation and configuration
-1. Install ElasticSearch 5.4.0
+1. Install ElasticSearch 5.6.2
    ```bash
    [/] cd /work/elk/elasticsearch
-   [/work/elk/elasticsearch] wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.4.0.tar.gz
-   [/work/elk/elasticsearch] tar -zxvf ./elasticsearch-5.4.0.tar.gz
-   [/work/elk/elasticsearch] cd elasticsearch-5.4.0
+   [/work/elk/elasticsearch] wget https://artifacts.elastic.co/downloads/elasticsearch/elasticsearch-5.6.2.tar.gz
+   [/work/elk/elasticsearch] tar -zxvf ./elasticsearch-5.6.2.tar.gz
+   [/work/elk/elasticsearch] cd elasticsearch-5.6.2
    ```
-2. Install corresponding version of [ingest-attachment](https://github.com/elastic/elasticsearch/tree/5.4/plugins/ingest-attachment) plug-in ([5.4.0](https://artifacts.elastic.co/downloads/elasticsearch-plugins/ingest-attachment/ingest-attachment-5.4.0.zip) for ES 5.4.0) on every node in the cluster, and each node must be restarted after installation. This requires Java in path.
+2. Install corresponding version of [ingest-attachment](https://github.com/elastic/elasticsearch/tree/5.6/plugins/ingest-attachment) plug-in ([5.6.2](https://artifacts.elastic.co/downloads/elasticsearch-plugins/ingest-attachment/ingest-attachment-5.6.2.zip) for ES 5.6.2) on every node in the cluster, and each node must be restarted after installation. This requires Java in path.
    ```bash
-   [/work/elk/elasticsearch/elasticsearch-5.4.0] wget https://artifacts.elastic.co/downloads/elasticsearch-plugins/ingest-attachment/ingest-attachment-5.4.0.zip
-   [/work/elk/elasticsearch/elasticsearch-5.4.0] ./bin/elasticsearch-plugin install file:///work/elk/elasticsearch/elasticsearch-5.3.0/ingest-attachment-5.4.0.zip
-   -> Downloading file:///work/elk/elasticsearch/elasticsearch-5.4.0/ingest-attachment-5.4.0.zip
+   [/work/elk/elasticsearch/elasticsearch-5.6.2] wget https://artifacts.elastic.co/downloads/elasticsearch-plugins/ingest-attachment/ingest-attachment-5.6.2.zip
+   [/work/elk/elasticsearch/elasticsearch-5.6.2] ./bin/elasticsearch-plugin install file:///work/elk/elasticsearch/elasticsearch-5.6.2/ingest-attachment-5.6.2.zip
+   -> Downloading file:///work/elk/elasticsearch/elasticsearch-5.6.2/ingest-attachment-5.6.2.zip
    [=================================================] 100% 
    Continue with installation? [y/N]y
    -> Installed ingest-attachment
    ```
-3. Make sure to have following settings in your elasticsearch.yml
+3. Make sure to have following settings in your elasticsearch.yml (on all nodes to which your application client will connect)
    ```bash
-   [/work/elk/elasticsearch/elasticsearch-5.4.0] vim config/elasticsearch.yml
+   [/work/elk/elasticsearch/elasticsearch-5.6.2] vim config/elasticsearch.yml
+   cluster.name: docManagementCluster
+
+   node.name: ${HOSTNAME}
+   node.master: true            # Enable the node.master role (enabled by default).
+   node.data: true              # Enable the node.data role (enabled by default).
+   node.ingest: true            # Enable the node.ingest role (enabled by default).
+   search.remote.connect: false # Disable cross-cluster search (enabled by default).
+   node.ml: false               # Disable the node.ml role (enabled by default in X-Pack).
+   xpack.ml.enabled: false      # The xpack.ml.enabled setting is enabled by default in X-Pack.
+
+   path.data: ["/work/elk/elasticsearch/docManagementCluster/data"]
+   path.repo: ["/work/elk/elasticsearch/docManagementCluster/backups"]
+   path.logs: /work/elk/elasticsearch/docManagementCluster/logs
+
+   network.host: 0.0.0.0
+
+   http.port: 9200              # 9200 default
+   transport.tcp.port: 9300     # 9300 default
+
+   # discovery.zen.ping.unicast.hosts: ["crcdsr000001300:9301", "crcdsr000001301:9301", "crcdsr000001302:9301"]
+   discovery.zen.minimum_master_nodes: 1
+   node.max_local_storage_nodes: 1
+   gateway.recover_after_nodes: 1
+   action.destructive_requires_name: true  # to disable allowing to delete indices via wildcards * or _all
+
    ## Add CORS Support
    http.cors.enabled : true
    http.cors.allow-origin : "*"
-   http.cors.allow-methods : OPTIONS, HEAD, GET, POST, PUT, DELETE
+   # http.cors.allow-methods : OPTIONS, HEAD, GET, POST, PUT, DELETE  # commented out, as already default
    http.cors.allow-headers : X-Requested-With,X-Auth-Token,Content-Type,Content-Length,Authorization
-   http.max_content_length : 500mb
-   
-   cluster.name: mycluster
-   node.name: ${HOSTNAME}
-   network.host: 0.0.0.0
-   discovery.zen.minimum_master_nodes: 1
-   node.max_local_storage_nodes: 1
+   http.max_content_length : 500mb # Defaults to 100mb
+
    plugin.mandatory: ingest-attachment
-   path.repo: ["/work/elk/elasticsearch/backups"]
    ```
-4. (Optional) Install X-Pack (security/shield plug-in) as mentioned [here](https://www.elastic.co/guide/en/x-pack/current/installing-xpack.html#xpack-package-installation).
-5. Start ElasticSearch
+4. Configure logging using log4j2.properties (on all nodes to which your application client will connect)
    ```bash
-   [/work/elk/elasticsearch/elasticsearch-5.4.0]./bin/elasticsearch
+   logger.action.level = warn
+
+   appender.rolling.filePattern = ${sys:es.logs.base_path}${sys:file.separator}${sys:es.logs.cluster_name}-%d{yyyy-MM-dd}.log.gz
+
+   appender.rolling.strategy.type = DefaultRolloverStrategy
+   appender.rolling.strategy.action.type = Delete
+   appender.rolling.strategy.action.basepath = ${sys:es.logs.base_path}
+   appender.rolling.strategy.action.condition.type = IfLastModified
+   appender.rolling.strategy.action.condition.age = 30D
+   appender.rolling.strategy.action.PathConditions.type = IfFileName
+   appender.rolling.strategy.action.PathConditions.glob = ${sys:es.logs.cluster_name}-*
+
+   rootLogger.level = warn
+
+   logger.index_search_slowlog_rolling.level = warn
+
+   logger.index_indexing_slowlog.level = warn
+   ```
+5. (Optional) Install X-Pack (security/shield plug-in) as mentioned [here](https://www.elastic.co/guide/en/x-pack/current/installing-xpack.html#xpack-package-installation).
+6. Start ElasticSearch
+   ```bash
+   [/work/elk/elasticsearch/elasticsearch-5.6.2]./bin/elasticsearch
    ```
 
 ### ElasticSearch index setup
@@ -362,8 +401,16 @@ Example of how to use ElasticSearch ingest-attachment plugin using JavaScript
    ```bash
    $ brew install node
    ```
-   It will be installed at ```/usr/local/Cellar/node/7.7.2```
-5. Configure `~/.npmrc` file used by `npm` if you sit behind proxy server:
+   It will be installed at ```/usr/local/Cellar/node/8.6.0```
+5. Install latest npm
+   ```bash
+   npm i -g npm
+   /usr/local/bin/npm -> /usr/local/lib/node_modules/npm/bin/npm-cli.js
+   /usr/local/bin/npx -> /usr/local/lib/node_modules/npm/bin/npx-cli.js
+   + npm@5.4.2
+   added 21 packages, removed 22 packages and updated 19 packages in 20.793s
+   ```
+6. Configure `~/.npmrc` file used by `npm` if you sit behind proxy server:
    ```bash
    $ vim ~/.npmrc
    strict-ssl=true
@@ -372,7 +419,7 @@ Example of how to use ElasticSearch ingest-attachment plugin using JavaScript
    https-proxy=http://http_user:http_password@http_proxy_host:http_proxy_port/
    cafile=/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem
    ```
-6. If you don't have sudo / root access, then you need to change default npm modules location. Check [this](http://www.competa.com/blog/how-to-run-npm-without-sudo/) for complete steps.
+7. If you don't have sudo / root access, then you need to change default npm modules location. Check [this](http://www.competa.com/blog/how-to-run-npm-without-sudo/) for complete steps.
    ```bash
    $ npm config set prefix ~/npm
    ```
@@ -381,14 +428,14 @@ Example of how to use ElasticSearch ingest-attachment plugin using JavaScript
    export NODE_PATH="$NODE_PATH:$HOME/npm/lib/node_modules"
    export PATH="./:$PATH:$HOME/bin:$JAVA_HOME/bin:$HOME/npm/bin"
    ```
-7. Install bower (bower has a dependency on git; if git is not available, then copy paste ui/bower_components folder from the machine where git is available):
+8. Install bower (bower has a dependency on git; if git is not available, then copy paste ui/bower_components folder from the machine where git is available):
    ```bash
    $ npm install -g bower
    ~/npm/bin/bower -> ~/npm/lib/node_modules/bower/bin/bower
    ~/npm/lib
-   └── bower@1.8.0
+   └── bower@1.8.2
    ```
-8. Configure `.bowerrc` file used by `Bower` if you sit behind proxy server:
+9. Configure `.bowerrc` file used by `Bower` if you sit behind proxy server:
    ```bash
    $ vim ~/.bowerrc
    {
@@ -398,12 +445,12 @@ Example of how to use ElasticSearch ingest-attachment plugin using JavaScript
        "ca":"/etc/pki/ca-trust/extracted/pem/tls-ca-bundle.pem"
    }
    ```
-9. Then go to directory where you put `bower.json` and download all the dependencies mentioned in `bower.json`:
+10. Then go to directory where you put `bower.json` and download all the dependencies mentioned in `bower.json`:
    ```bash
    $ cd /work/github/elasticsearch-ingest-attachment-plugin-example/ui
    [/work/github/elasticsearch-ingest-attachment-plugin-example/ui] bower install
    ```
-10. After that you will get all required dependencies for this example to run.
+11. After that you will get all required dependencies for this example to run.
    It should run as local server not as files so you need to host it somehow.
    The simplest way will be:
    ```bash
@@ -413,10 +460,10 @@ Example of how to use ElasticSearch ingest-attachment plugin using JavaScript
    └─┬ lite-server@2.3.0 
    $ npm list -g --depth=0
    ~/npm/lib
-   ├── bower@1.8.0
+   ├── bower@1.8.2
    └── lite-server@2.3.0
    ```
-11. Go to the directory where `index.html` is and start the web server:
+12. Go to the directory where `index.html` is and start the web server:
    ```bash
    [/work/github/elasticsearch-ingest-attachment-plugin-example/ui] lite-server
    Did not detect a `bs-config.json` or `bs-config.js` override file. Using lite-server defaults...
