@@ -1,0 +1,17 @@
+{
+  "name": "elasticsearch-ingest-attachment-plugin-example",
+  "version": "6.5.4",
+  "description": "Example of how to use ElasticSearch ingest-attachment plugin",
+  "main": "index.html",
+  "repository": "https://github.com/rahulsinghai/elasticsearch-ingest-attachment-plugin-example",
+  "author": "Rahul Singhai <singrahu@gmail.com>",
+  "license": "Apache-2.0",
+  "dependencies": {
+    "bootstrap": "4.2.1",
+    "elasticsearch-browser": "15.2.0",
+    "font-awesome": "4.7.0",
+    "jquery": "3.3.1",
+    "knockout": "3.4.2",
+    "popper.js": "1.14.6"
+  }
+}
